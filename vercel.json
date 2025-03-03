@@ -1,6 +1,10 @@
 {
   "buildCommand": "cd app && npm run build",
   "outputDirectory": "app/.next",
+  "framework": "nextjs",
   "devCommand": "cd app && npm run dev",
-  "installCommand": "cd app && npm install"
+  "installCommand": "cd app && npm install",
+  "routes": [
+    { "src": "/(.*)", "dest": "/app/$1" }
+  ]
 } 
