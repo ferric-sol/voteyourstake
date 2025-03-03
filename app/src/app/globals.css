@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 248, 250, 252;
+  --background-end-rgb: 241, 245, 249;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+/* Custom styles for the voting app */
+.vote-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.vote-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Wallet button customization */
+.wallet-adapter-button {
+  height: 48px;
+  border-radius: 8px;
+  background-color: #4f46e5;
+  transition: background-color 0.2s ease;
+}
+
+.wallet-adapter-button:hover {
+  background-color: #4338ca;
+}
+
+.wallet-adapter-button:not([disabled]):hover {
+  background-color: #4338ca;
+}
+
+/* Progress bar for voting */
+.progress-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+} 
