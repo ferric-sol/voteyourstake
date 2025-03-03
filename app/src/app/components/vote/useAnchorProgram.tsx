@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider, Idl } from '@coral-xyz/anchor';
-import { PublicKey } from '@solana/web3.js';
 import { idl } from './idl';
 
 /**

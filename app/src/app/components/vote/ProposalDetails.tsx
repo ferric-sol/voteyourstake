@@ -3,16 +3,10 @@
 import React from 'react';
 import { ProposalData, StakeAccountInfo } from './types';
 import { formatNumber, calculatePercentage, formatRemainingTime, isProposalActive } from './utils';
-// @ts-ignore
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-// @ts-ignore
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-// @ts-ignore
 import { Button } from '@/components/ui/button';
-// @ts-ignore
 import { Progress } from '@/components/ui/progress';
-// @ts-ignore
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ProposalDetailsProps {
   proposal: ProposalData;

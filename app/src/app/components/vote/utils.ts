@@ -3,7 +3,6 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { Program } from '@coral-xyz/anchor';
 import { ProposalData, StakeAccountInfo } from './types';
-import { idl } from './idl';
 
 // Function to fetch all proposals
 export const fetchProposals = async (
@@ -17,7 +16,7 @@ export const fetchProposals = async (
   try {
     // Fetch all proposal accounts
     console.log('Calling program.account.proposal.all()...');
-    // @ts-ignore - Ignore TypeScript error for account access
+    // @ts-expect-error - Ignore TypeScript error for account access
     const proposalAccounts = await program.account.proposal.all();
     console.log('Fetched proposal accounts:', proposalAccounts.length);
     
@@ -61,10 +60,10 @@ export const hasVoted = async (
     );
     
     // Try to fetch the vote record account
-    // @ts-ignore - Ignore TypeScript error for account access
+    // @ts-expect-error - Ignore TypeScript error for account access
     await program.account.voteRecord.fetch(voteRecordPda);
     return true; // If we get here, the account exists, so the stake account has voted
-  } catch (error) {
+  } catch {
     return false; // If there's an error (account not found), the stake account hasn't voted
   }
 };

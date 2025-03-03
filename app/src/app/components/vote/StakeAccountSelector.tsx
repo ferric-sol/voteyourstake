@@ -3,13 +3,9 @@
 import React from 'react';
 import { StakeAccountInfo } from './types';
 import { formatNumber } from './utils';
-// @ts-ignore
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-// @ts-ignore
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-// @ts-ignore
 import { Badge } from '@/components/ui/badge';
-// @ts-ignore
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface StakeAccountSelectorProps {

@@ -40,7 +40,7 @@ const StakeAccountList: React.FC<StakeAccountListProps> = ({
         <Alert>
           <AlertTitle>No Stake Accounts Found</AlertTitle>
           <AlertDescription>
-            You don't have any stake accounts associated with this wallet. Create a stake account to participate in voting.
+            You don&apos;t have any stake accounts associated with this wallet. Create a stake account to participate in voting.
           </AlertDescription>
         </Alert>
       ) : (

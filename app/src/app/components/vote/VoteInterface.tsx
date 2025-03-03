@@ -2,11 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey, SystemProgram, LAMPORTS_PER_SOL, Transaction, TransactionInstruction, ComputeBudgetProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
+import { PublicKey, SystemProgram, LAMPORTS_PER_SOL, ComputeBudgetProgram } from '@solana/web3.js';
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { getStakeAccounts } from '@/app/utils/solana';
@@ -15,9 +13,8 @@ import ConnectionStatus from './ConnectionStatus';
 import StakeAccountList from './StakeAccountList';
 import ProposalCard from './ProposalCard';
 import { useAnchorProgram } from './useAnchorProgram';
-import { StakeAccountInfo, DecodedProposal } from './types';
-import { BN, AnchorProvider, Program, Idl } from '@coral-xyz/anchor';
-import { idl } from './idl';
+import { StakeAccountInfo, ProposalData } from './types';
+import { BN } from '@coral-xyz/anchor';
 
 const VoteInterface: React.FC = () => {
   const { connection } = useConnection();
@@ -35,10 +32,12 @@ const VoteInterface: React.FC = () => {
   
   // State
   const [loadingCounter, setLoadingCounter] = useState(0);
-  const [proposals, setProposals] = useState<any[]>([]);
   const [stakeAccounts, setStakeAccounts] = useState<StakeAccountInfo[]>([]);
   const [selectedStakeAccounts, setSelectedStakeAccounts] = useState<StakeAccountInfo[]>([]);
+  const [proposals, setProposals] = useState<ProposalData[]>([]);
   const [voteLoading, setVoteLoading] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState<any | null>(null);
+  const [simdProposals, setSimdProposals] = useState<any[]>([]);
   
   // Derived state
   const isLoading = loadingCounter > 0;
@@ -359,18 +358,17 @@ const VoteInterface: React.FC = () => {
         console.warn("Error checking proposal account:", e);
       }
       
-      // Calculate vote record PDA
-      const [voteRecordPda, bump] = PublicKey.findProgramAddressSync(
+      // Find the PDA for the vote record account
+      const [voteRecordPda] = PublicKey.findProgramAddressSync(
         [
-          Buffer.from("vote_record"),
+          Buffer.from('vote_record'),
           proposal.pubkey.toBuffer(),
-          stakeAccountPubkey.toBuffer(),
+          new PublicKey(stakeAccount.pubkey).toBuffer()
         ],
         anchorProgram.programId
       );
       
       console.log("Vote record PDA:", voteRecordPda.toString());
-      console.log("Vote record bump:", bump);
       
       // Check if vote record account already exists (already voted)
       const voteRecordAccount = await solConnection.getAccountInfo(voteRecordPda);

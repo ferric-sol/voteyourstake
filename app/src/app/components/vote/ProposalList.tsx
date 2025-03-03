@@ -3,13 +3,9 @@
 import React from 'react';
 import { ProposalData, SIMDProposal } from './types';
 import { formatRemainingTime, isProposalActive } from './utils';
-// @ts-ignore
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-// @ts-ignore
 import { Badge } from '@/components/ui/badge';
-// @ts-ignore
 import { Button } from '@/components/ui/button';
-// @ts-ignore
 import { Loader2 } from 'lucide-react';
 
 interface ProposalListProps {
