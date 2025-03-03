@@ -98,9 +98,13 @@ export const checkVotedProposals = async (
   return updatedStakeAccounts;
 };
 
-// Function to format a number with commas
-export const formatNumber = (num: string | number): string => {
-  return Number(num).toLocaleString();
+// Utility function to format numbers
+export const formatNumber = (value: number | string): string => {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  return new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2
+  }).format(numValue);
 };
 
 // Function to calculate the percentage of votes

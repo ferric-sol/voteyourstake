@@ -65,12 +65,6 @@ pub mod voteyourstake {
             VoteError::ProposalInactive
         );
         
-        // Check if this stake account has already voted on this proposal
-        if ctx.accounts.vote_record_account.data_is_empty().not() {
-            // If the account exists, it means this stake account has already voted
-            return Err(VoteError::AlreadyVoted.into());
-        }
-        
         // Verify the stake account's authorized withdrawer matches the voter
         let stake_state = ctx.accounts.stake_account.stake_state()?;
         
@@ -84,42 +78,11 @@ pub mod voteyourstake {
                 // Get the stake weight (active stake)
                 let stake_weight = stake.delegation.stake;
                 
-                // Create the vote record account - optimized to use the minimum space needed
-                let space = 8 + // discriminator
-                           32 + // stake_account: Pubkey
-                           32;  // proposal: Pubkey
-                
-                let rent = Rent::get()?;
-                let lamports = rent.minimum_balance(space);
-                
-                // Create the vote record account
-                anchor_lang::system_program::create_account(
-                    CpiContext::new(
-                        ctx.accounts.system_program.to_account_info(),
-                        anchor_lang::system_program::CreateAccount {
-                            from: ctx.accounts.voter.to_account_info(),
-                            to: ctx.accounts.vote_record_account.to_account_info(),
-                        },
-                    ),
-                    lamports,
-                    space as u64,
-                    ctx.program_id,
-                )?;
-                
-                // Initialize the vote record account data
-                let mut vote_record_data = &mut ctx.accounts.vote_record_account.try_borrow_mut_data()?[..];
-                
-                // Write the account discriminator
-                let discriminator = VoteRecord::discriminator();
-                vote_record_data[0..8].copy_from_slice(&discriminator);
-                
-                // Write the stake account pubkey
-                let stake_account_bytes = stake_account_pubkey.to_bytes();
-                vote_record_data[8..40].copy_from_slice(&stake_account_bytes);
-                
-                // Write the proposal pubkey
-                let proposal_bytes = proposal.key().to_bytes();
-                vote_record_data[40..72].copy_from_slice(&proposal_bytes);
+                // Initialize the vote record account
+                // The account is now created automatically by Anchor due to the init constraint
+                let vote_record = &mut ctx.accounts.vote_record_account;
+                vote_record.stake_account = stake_account_pubkey;
+                vote_record.proposal = proposal.key();
 
                 // Update vote counts based on yes/no
                 match vote {
@@ -140,13 +103,13 @@ pub mod voteyourstake {
                     stake_weight
                 );
                 
-                // Update the Merkle root
+                // Update the merkle root
                 proposal.merkle_root = update_merkle_root(&proposal.merkle_root, &leaf);
+                
+                Ok(())
             },
-            _ => return Err(VoteError::InvalidStakeAccount.into()),
+            _ => Err(VoteError::InvalidStakeAccount.into())
         }
-
-        Ok(())
     }
     
     pub fn close_proposal(ctx: Context<CloseProposal>) -> Result<()> {
@@ -240,9 +203,11 @@ pub struct CastVote<'info> {
     #[account(mut)]
     pub voter: Signer<'info>,
     
-    /// CHECK: This account is initialized in the instruction
+    // Modified to use Anchor's init constraint for proper PDA handling
     #[account(
-        mut,
+        init,
+        payer = voter,
+        space = 8 + 32 + 32, // discriminator + stake_account pubkey + proposal pubkey
         seeds = [
             b"vote_record",
             proposal.key().as_ref(),
@@ -250,7 +215,7 @@ pub struct CastVote<'info> {
         ],
         bump
     )]
-    pub vote_record_account: AccountInfo<'info>,
+    pub vote_record_account: Account<'info, VoteRecord>,
     
     pub system_program: Program<'info, System>,
 }
