@@ -2,25 +2,15 @@
 
 import React, { useState, ChangeEvent } from 'react';
 import { SIMDProposal } from './types';
-// @ts-ignore
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-// @ts-ignore
 import { Button } from '@/components/ui/button';
-// @ts-ignore
 import { Input } from '@/components/ui/input';
-// @ts-ignore
 import { Textarea } from '@/components/ui/textarea';
-// @ts-ignore
 import { Label } from '@/components/ui/label';
-// @ts-ignore
 import { Calendar } from '@/components/ui/calendar';
-// @ts-ignore
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-// @ts-ignore
 import { CalendarIcon } from '@radix-ui/react-icons';
-// @ts-ignore
 import { format } from 'date-fns';
-// @ts-ignore
 import { cn } from '@/lib/utils';
 
 interface CreateProposalFormProps {
