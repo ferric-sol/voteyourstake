@@ -242,7 +242,7 @@ const VoteInterface: React.FC = () => {
           console.log('Account data length:', account.account.data.length);
           console.log('Account data (base64):', account.account.data.toString('base64'));
           
-          const decodedAccount = await program.coder.accounts.decode('Proposal', account.account.data);
+          const decodedAccount = await program.coder.accounts.decode('proposal', account.account.data);
           console.log('Successfully decoded account:', decodedAccount);
           proposalAccounts.push({
             publicKey: account.pubkey,

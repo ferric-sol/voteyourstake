@@ -1,78 +1,55 @@
 "use client"
 
-// Important: Removed Idl import and type enforcement to eliminate any unexpected constraints
-
-// Define a complete Anchor IDL with accounts section
+// Define the IDL based on the fetched-idl.json structure
 export const idl = {
-  version: "0.1.0",
-  name: "voteyourstake",
+  address: "HaEmonFHu9RoLvn1EPreVcfDFmYGQqVdhUsADrAWorfL",
   programId: "HaEmonFHu9RoLvn1EPreVcfDFmYGQqVdhUsADrAWorfL",
+  metadata: {
+    name: "voteyourstake",
+    version: "0.1.0",
+    spec: "0.1.0",
+    description: "Created with Anchor"
+  },
   instructions: [
     {
-      name: "initialize_proposal",
-      accounts: [
-        {
-          name: "proposal",
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: "authority",
-          isMut: true,
-          isSigner: true
-        },
-        {
-          name: "systemProgram",
-          isMut: false,
-          isSigner: false
-        }
-      ],
-      args: [
-        {
-          name: "proposalId",
-          type: "string"
-        },
-        {
-          name: "title",
-          type: "string"
-        },
-        {
-          name: "description",
-          type: "string"
-        },
-        {
-          name: "endTime",
-          type: "i64"
-        }
-      ]
-    },
-    {
       name: "cast_vote",
+      discriminator: [20, 212, 15, 189, 69, 180, 69, 151],
       accounts: [
         {
           name: "proposal",
-          isMut: true,
-          isSigner: false
+          writable: true
         },
         {
-          name: "stakeAccount",
-          isMut: false,
-          isSigner: false
+          name: "stake_account"
         },
         {
           name: "voter",
-          isMut: true,
-          isSigner: true
+          writable: true,
+          signer: true
         },
         {
-          name: "voteRecordAccount",
-          isMut: true,
-          isSigner: false
+          name: "vote_record_account",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [118, 111, 116, 101, 95, 114, 101, 99, 111, 114, 100]
+              },
+              {
+                kind: "account",
+                path: "proposal"
+              },
+              {
+                kind: "account",
+                path: "stake_account"
+              }
+            ]
+          }
         },
         {
-          name: "systemProgram",
-          isMut: false,
-          isSigner: false
+          name: "system_program",
+          address: "11111111111111111111111111111111"
         }
       ],
       args: [
@@ -84,91 +61,73 @@ export const idl = {
     },
     {
       name: "close_proposal",
+      discriminator: [213, 178, 139, 19, 50, 191, 82, 245],
       accounts: [
         {
           name: "proposal",
-          isMut: true,
-          isSigner: false
+          writable: true
         },
         {
           name: "authority",
-          isMut: false,
-          isSigner: true
+          signer: true
         }
       ],
       args: []
+    },
+    {
+      name: "initialize_proposal",
+      discriminator: [50, 73, 156, 98, 129, 149, 21, 158],
+      accounts: [
+        {
+          name: "proposal",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [112, 114, 111, 112, 111, 115, 97, 108]
+              },
+              {
+                kind: "arg",
+                path: "proposal_id"
+              }
+            ]
+          }
+        },
+        {
+          name: "authority",
+          writable: true,
+          signer: true
+        },
+        {
+          name: "system_program",
+          address: "11111111111111111111111111111111"
+        }
+      ],
+      args: [
+        {
+          name: "proposal_id",
+          type: "string"
+        },
+        {
+          name: "title",
+          type: "string"
+        },
+        {
+          name: "description",
+          type: "string"
+        },
+        {
+          name: "end_time",
+          type: "i64"
+        }
+      ]
     }
   ],
   accounts: [
     {
-      name: "proposal",
-      type: {
-        kind: "struct",
-        fields: [
-          {
-            name: "authority",
-            type: "publicKey"
-          },
-          {
-            name: "proposalId",
-            type: "string"
-          },
-          {
-            name: "title",
-            type: "string"
-          },
-          {
-            name: "description",
-            type: "string"
-          },
-          {
-            name: "yesVotes",
-            type: "u64"
-          },
-          {
-            name: "noVotes",
-            type: "u64"
-          },
-          {
-            name: "endTime",
-            type: "i64"
-          },
-          {
-            name: "isActive",
-            type: "bool"
-          },
-          {
-            name: "voteCount",
-            type: "u64"
-          },
-          {
-            name: "merkleRoot",
-            type: {
-              array: ["u8", 32]
-            }
-          }
-        ]
-      }
-    },
-    {
-      name: "voteRecord",
-      type: {
-        kind: "struct",
-        fields: [
-          {
-            name: "proposal",
-            type: "publicKey"
-          },
-          {
-            name: "voter",
-            type: "publicKey"
-          },
-          {
-            name: "vote",
-            type: "u8"
-          }
-        ]
-      }
+      name: "Proposal",
+      discriminator: [26, 94, 189, 187, 116, 136, 53, 33]
     }
   ],
   errors: [
@@ -206,6 +165,78 @@ export const idl = {
       code: 6006,
       name: "ProposalInactive",
       msg: "Proposal is no longer active"
+    },
+    {
+      code: 6007,
+      name: "ProposalIdTooLong",
+      msg: "Proposal ID too long - maximum 32 characters"
+    },
+    {
+      code: 6008,
+      name: "TitleTooLong",
+      msg: "Title too long - maximum 64 characters"
+    },
+    {
+      code: 6009,
+      name: "DescriptionTooLong",
+      msg: "Description too long - maximum 256 characters"
+    },
+    {
+      code: 6010,
+      name: "InvalidEndTime",
+      msg: "End time must be in the future"
+    }
+  ],
+  types: [
+    {
+      name: "Proposal",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "authority",
+            type: "pubkey"
+          },
+          {
+            name: "proposal_id",
+            type: "string"
+          },
+          {
+            name: "title",
+            type: "string"
+          },
+          {
+            name: "description",
+            type: "string"
+          },
+          {
+            name: "yes_votes",
+            type: "u64"
+          },
+          {
+            name: "no_votes",
+            type: "u64"
+          },
+          {
+            name: "end_time",
+            type: "i64"
+          },
+          {
+            name: "is_active",
+            type: "bool"
+          },
+          {
+            name: "vote_count",
+            type: "u64"
+          },
+          {
+            name: "merkle_root",
+            type: {
+              array: ["u8", 32]
+            }
+          }
+        ]
+      }
     }
   ]
 }; 
