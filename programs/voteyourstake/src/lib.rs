@@ -78,7 +78,7 @@ pub mod voteyourstake {
                 );
 
                 // Verify the stake account is delegated to our validator
-                let validator_vote_pubkey = Pubkey::from_str("C616NHpqpaiYpqVAv619QL73vEqKJs1mjsJLtAuCzMX6").unwrap();
+                let validator_vote_pubkey = Pubkey::from_str("28rDknpdBPNu5RU9yxbVqqHwnbXB9qaCigw1M53g7Nps").unwrap();
                 require!(
                     stake.delegation.voter_pubkey == validator_vote_pubkey,
                     VoteError::NotDelegatedToValidator
