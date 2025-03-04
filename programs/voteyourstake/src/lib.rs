@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::stake::state::StakeStateV2;
 use anchor_lang::solana_program::hash::{hashv, Hash};
 use std::ops::Not;
+use std::str::FromStr;
 use anchor_lang::Discriminator;
 
 declare_id!("HaEmonFHu9RoLvn1EPreVcfDFmYGQqVdhUsADrAWorfL");
@@ -70,9 +71,17 @@ pub mod voteyourstake {
         
         match stake_state {
             StakeStateV2::Stake(meta, stake, _stake_flags) => {
+                // Verify the voter is authorized
                 require!(
                     meta.authorized.withdrawer == voter_pubkey,
                     VoteError::UnauthorizedVoter
+                );
+
+                // Verify the stake account is delegated to our validator
+                let validator_vote_pubkey = Pubkey::from_str("C616NHpqpaiYpqVAv619QL73vEqKJs1mjsJLtAuCzMX6").unwrap();
+                require!(
+                    stake.delegation.voter_pubkey == validator_vote_pubkey,
+                    VoteError::NotDelegatedToValidator
                 );
 
                 // Get the stake weight (active stake)
@@ -285,6 +294,9 @@ pub enum VoteError {
     
     #[msg("End time must be in the future")]
     InvalidEndTime,
+    
+    #[msg("Stake account is not delegated to the validator")]
+    NotDelegatedToValidator,
 }
 
 trait StakeAccountLoader {
