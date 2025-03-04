@@ -10,6 +10,7 @@ interface ProposalCardProps {
   voteLoading: boolean;
   onVote: (proposal: ProposalData, voteValue: number) => void;
   formatNumber: (value: number | string) => string;
+  disableVoting?: boolean;
 }
 
 const ProposalCard: React.FC<ProposalCardProps> = ({
@@ -17,7 +18,8 @@ const ProposalCard: React.FC<ProposalCardProps> = ({
   selectedStakeAccounts,
   voteLoading,
   onVote,
-  formatNumber
+  formatNumber,
+  disableVoting = false
 }) => {
   return (
     <Card key={proposal.id || proposal.proposalId} className="overflow-hidden">
@@ -42,13 +44,19 @@ const ProposalCard: React.FC<ProposalCardProps> = ({
           </div>
         </div>
         
-        {proposal.isActive && (
+        {proposal.isActive && !disableVoting && (
           <ProposalActions 
             proposal={proposal}
             selectedStakeAccounts={selectedStakeAccounts}
             voteLoading={voteLoading}
             onVote={onVote}
           />
+        )}
+        
+        {proposal.isActive && disableVoting && (
+          <div className="p-4 bg-gray-100 rounded-lg text-center text-gray-600">
+            Voting is disabled because you don't have any eligible stake accounts.
+          </div>
         )}
       </CardContent>
     </Card>

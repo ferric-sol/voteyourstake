@@ -437,18 +437,35 @@ const VoteInterface: React.FC = () => {
                       </AlertDescription>
                     </Alert>
                     
-                    <StakeAccountList
-                      stakeAccounts={stakeAccounts}
-                      selectedStakeAccounts={selectedStakeAccounts}
-                      handleSelectStakeAccount={handleSelectStakeAccount}
-                      selectAllStakeAccounts={selectAllStakeAccounts}
-                      formatNumber={formatNumber}
-                    />
+                    {stakeAccounts.length === 0 ? (
+                      <Alert variant="destructive" className="mb-4">
+                        <AlertTitle>No Eligible Stake Accounts</AlertTitle>
+                        <AlertDescription>
+                          No eligible stake accounts were found. You need to have stake accounts delegated to validator <span className="font-mono">28rDkn...7Nps</span> to participate in voting.
+                        </AlertDescription>
+                      </Alert>
+                    ) : (
+                      <StakeAccountList
+                        stakeAccounts={stakeAccounts}
+                        selectedStakeAccounts={selectedStakeAccounts}
+                        handleSelectStakeAccount={handleSelectStakeAccount}
+                        selectAllStakeAccounts={selectAllStakeAccounts}
+                        formatNumber={formatNumber}
+                      />
+                    )}
                     
                     {/* Proposals Section with Voting UI */}
                     {proposals.length > 0 && (
                       <div className="mt-6">
                         <h3 className="text-lg font-semibold mb-4">Proposals</h3>
+                        {stakeAccounts.length === 0 && (
+                          <Alert variant="default" className="mb-4">
+                            <AlertTitle>Voting Disabled</AlertTitle>
+                            <AlertDescription>
+                              You cannot vote on these proposals because you don't have any eligible stake accounts. You can still view the proposals below.
+                            </AlertDescription>
+                          </Alert>
+                        )}
                         <div className="space-y-4">
                           {proposals.map((proposal) => (
                             <ProposalCard 
@@ -458,6 +475,7 @@ const VoteInterface: React.FC = () => {
                               voteLoading={voteLoading}
                               onVote={castVote}
                               formatNumber={formatNumber}
+                              disableVoting={stakeAccounts.length === 0}
                             />
                           ))}
                         </div>
