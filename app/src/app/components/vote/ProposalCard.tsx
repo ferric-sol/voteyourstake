@@ -2,13 +2,13 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ProposalActions from './ProposalActions';
-import { StakeAccountInfo } from './types';
+import { StakeAccountInfo, ProposalData } from './types';
 
 interface ProposalCardProps {
-  proposal: any;
+  proposal: ProposalData;
   selectedStakeAccounts: StakeAccountInfo[];
   voteLoading: boolean;
-  onVote: (proposal: any, voteValue: number) => void;
+  onVote: (proposal: ProposalData, voteValue: number) => void;
   formatNumber: (value: number | string) => string;
 }
 
@@ -20,12 +20,12 @@ const ProposalCard: React.FC<ProposalCardProps> = ({
   formatNumber
 }) => {
   return (
-    <Card key={proposal.id} className="overflow-hidden">
+    <Card key={proposal.id || proposal.proposalId} className="overflow-hidden">
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-2">
           <h4 className="text-xl font-semibold">{proposal.title}</h4>
-          <Badge variant={proposal.isClosed ? "destructive" : "outline"}>
-            {proposal.isClosed ? "Closed" : "Active"}
+          <Badge variant={!proposal.isActive ? "destructive" : "outline"}>
+            {!proposal.isActive ? "Closed" : "Active"}
           </Badge>
         </div>
         
@@ -42,7 +42,7 @@ const ProposalCard: React.FC<ProposalCardProps> = ({
           </div>
         </div>
         
-        {!proposal.isClosed && (
+        {proposal.isActive && (
           <ProposalActions 
             proposal={proposal}
             selectedStakeAccounts={selectedStakeAccounts}

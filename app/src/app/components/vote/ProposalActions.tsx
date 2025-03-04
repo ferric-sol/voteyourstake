@@ -1,12 +1,12 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { StakeAccountInfo } from './types';
+import { StakeAccountInfo, ProposalData } from './types';
 
 interface ProposalActionsProps {
-  proposal: any;
+  proposal: ProposalData;
   selectedStakeAccounts: StakeAccountInfo[];
   voteLoading: boolean;
-  onVote: (proposal: any, voteValue: number) => void;
+  onVote: (proposal: ProposalData, voteValue: number) => void;
 }
 
 const ProposalActions: React.FC<ProposalActionsProps> = ({ 
@@ -15,7 +15,9 @@ const ProposalActions: React.FC<ProposalActionsProps> = ({
   voteLoading, 
   onVote 
 }) => {
-  const canVote = selectedStakeAccounts.length > 0;
+  // Check if any of the selected stake accounts are eligible
+  const eligibleStakeAccounts = selectedStakeAccounts.filter(acc => acc.isEligible);
+  const canVote = eligibleStakeAccounts.length > 0;
 
   return (
     <div className="flex justify-end space-x-2 mt-4">

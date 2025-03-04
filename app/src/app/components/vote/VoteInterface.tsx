@@ -13,7 +13,7 @@ import ConnectionStatus from './ConnectionStatus';
 import StakeAccountList from './StakeAccountList';
 import ProposalCard from './ProposalCard';
 import { useAnchorProgram } from './useAnchorProgram';
-import { StakeAccountInfo, ProposalData } from './types';
+import { StakeAccountInfo, ProposalData, SIMDProposal } from './types';
 import { BN } from '@coral-xyz/anchor';
 
 const VoteInterface: React.FC = () => {
@@ -37,7 +37,7 @@ const VoteInterface: React.FC = () => {
   const [proposals, setProposals] = useState<ProposalData[]>([]);
   const [voteLoading, setVoteLoading] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState<any | null>(null);
-  const [simdProposals, setSimdProposals] = useState<any[]>([]);
+  const [simdProposals, setSimdProposals] = useState<SIMDProposal[]>([]);
   
   // Derived state
   const isLoading = loadingCounter > 0;
@@ -47,156 +47,64 @@ const VoteInterface: React.FC = () => {
   const startLoading = () => setLoadingCounter(prev => prev + 1);
   const stopLoading = () => setLoadingCounter(prev => Math.max(0, prev - 1));
   
+  // Load SIMD proposals
+  useEffect(() => {
+    // Import the SIMD_PROPOSALS_LIST from types.ts
+    import('./types').then(({ SIMD_PROPOSALS_LIST }) => {
+      setSimdProposals(SIMD_PROPOSALS_LIST);
+      
+      // Convert SIMD_PROPOSALS_LIST to ProposalData format
+      const formattedProposals: ProposalData[] = SIMD_PROPOSALS_LIST.map(simdProposal => ({
+        authority: new PublicKey('7NHwDTAu3XBPrMTFoEasfSNPhnP6uqLGAk6G8MiqDJU9'), // Use your wallet address
+        proposalId: simdProposal.id,
+        title: simdProposal.title,
+        description: simdProposal.description,
+        yesVotes: 0,
+        noVotes: 0,
+        endTime: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
+        isActive: true,
+        voteCount: 0,
+        pubkey: new PublicKey(PublicKey.findProgramAddressSync(
+          [Buffer.from('proposal'), Buffer.from(simdProposal.id)],
+          new PublicKey(anchorProgram?.programId || '11111111111111111111111111111111')
+        )[0]),
+        id: simdProposal.id
+      }));
+      
+      setProposals(formattedProposals);
+    });
+  }, [anchorProgram?.programId]);
+  
   // Data fetching functions
   const refreshProposals = async () => {
-    if (!anchorProgram) return;
+    // We're now using the SIMD_PROPOSALS_LIST directly, so this function
+    // doesn't need to fetch from the blockchain anymore
+    console.log('Refreshing proposals from local data...');
     
-          startLoading();
-    try {
-      console.log('Fetching proposals with Anchor...');
-      console.log('Program ID:', anchorProgram.programId.toString());
+    // Re-trigger the useEffect that loads the SIMD_PROPOSALS_LIST
+    import('./types').then(({ SIMD_PROPOSALS_LIST }) => {
+      setSimdProposals(SIMD_PROPOSALS_LIST);
       
-      // Fetch all proposal accounts
-      console.log('Fetching program accounts...');
-      const accounts = await connection.getProgramAccounts(anchorProgram.programId);
-      console.log('Found accounts:', accounts.length);
-      console.log('Account details:', accounts);
+      // Convert SIMD_PROPOSALS_LIST to ProposalData format
+      const formattedProposals: ProposalData[] = SIMD_PROPOSALS_LIST.map(simdProposal => ({
+        authority: new PublicKey('7NHwDTAu3XBPrMTFoEasfSNPhnP6uqLGAk6G8MiqDJU9'), // Use your wallet address
+        proposalId: simdProposal.id,
+        title: simdProposal.title,
+        description: simdProposal.description,
+        yesVotes: 0,
+        noVotes: 0,
+        endTime: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
+        isActive: true,
+        voteCount: 0,
+        pubkey: new PublicKey(PublicKey.findProgramAddressSync(
+          [Buffer.from('proposal'), Buffer.from(simdProposal.id)],
+          new PublicKey(anchorProgram?.programId || '11111111111111111111111111111111')
+        )[0]),
+        id: simdProposal.id
+      }));
       
-      // Try to decode each account as a proposal
-      console.log('Attempting to decode accounts...');
-      const proposalAccounts = [];
-      
-      for (const account of accounts) {
-        try {
-          console.log('Checking account:', account.pubkey.toString());
-          console.log('Account data length:', account.account.data.length);
-          
-          // Check discriminator
-          const discriminator = account.account.data.slice(0, 8);
-          const expectedDiscriminator = Buffer.from([26, 94, 189, 187, 116, 136, 53, 33]);
-          
-          const isMatch = Buffer.compare(discriminator, expectedDiscriminator) === 0;
-          
-          if (!isMatch) {
-            console.log('Account is not a proposal (discriminator mismatch), skipping');
-            console.log('Found discriminator:', Array.from(discriminator));
-            console.log('Expected discriminator:', Array.from(expectedDiscriminator));
-            continue;
-          }
-          
-          console.log('Account has proposal discriminator, decoding...');
-          console.log('Account data (base64):', account.account.data.toString('base64'));
-          
-          // Verify the program's account decoder is properly set up
-          console.log('Program account decoder available:', !!anchorProgram.coder?.accounts);
-          console.log('Account decoder:', anchorProgram.coder?.accounts);
-          
-          // Log the account we're trying to decode
-          console.log('Looking for layout with name "Proposal"');
-          
-          // Decode the account data
-          try {
-            // Try with exact capitalization as in IDL
-            console.log('Attempting to decode with exact name "Proposal"');
-            const decoded = anchorProgram.coder.accounts.decode('Proposal', account.account.data);
-            console.log('Successfully decoded account:', decoded);
-            
-            proposalAccounts.push({
-              pubkey: account.pubkey,
-              account: account.account,
-              decoded
-            });
-          } catch (error) {
-            console.error('Error with "Proposal":', error instanceof Error ? error.message : String(error));
-            
-            try {
-              // Try with lowercase since Anchor might convert it
-              console.log('Attempting to decode with lowercase name "proposal"');
-              const decoded = anchorProgram.coder.accounts.decode('proposal', account.account.data);
-              console.log('Successfully decoded account:', decoded);
-              
-              proposalAccounts.push({
-                pubkey: account.pubkey,
-                account: account.account,
-                decoded
-              });
-            } catch (decodeError) {
-              console.error('Error with "proposal":', decodeError instanceof Error ? decodeError.message : String(decodeError));
-              
-              // Try manual decoding if all else fails
-              try {
-                console.log('Attempting manual decoding via borsh');
-                // Extract just the data portion (after discriminator)
-                const dataWithoutDiscriminator = account.account.data.slice(8);
-                console.log('Data without discriminator:', dataWithoutDiscriminator);
-                
-                // Manually create a basic decoded object with fields we can determine
-                // This is a fallback if the standard decoding fails
-                const decoded = {
-                  authority: new PublicKey(dataWithoutDiscriminator.slice(0, 32)),
-                  // The rest of the fields are difficult to parse manually without borsh
-                  // So we'll have placeholder values
-                  proposalId: "Unknown ID",
-                  title: "Unknown Title",
-                  description: "Unknown Description",
-                  yesVotes: new BN(0),
-                  noVotes: new BN(0),
-                  endTime: new BN(0),
-                  isActive: true,
-                  voteCount: new BN(0),
-                  merkleRoot: new Array(32).fill(0),
-                };
-                
-                console.log('Manually decoded (partial):', decoded);
-                
-          proposalAccounts.push({
-                  pubkey: account.pubkey,
-                  account: account.account,
-                  decoded
-                });
-              } catch (manualError) {
-                console.error('Manual decoding also failed:', manualError);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Failed to decode account:', error);
-        }
-      }
-      
-      console.log('Successfully decoded accounts:', proposalAccounts.length);
-      console.log('Raw proposal accounts:', proposalAccounts);
-      
-      // Convert decoded accounts to our application format
-      const mappedProposals = proposalAccounts.map(account => {
-        console.log('Mapping proposal data:', account.decoded);
-        
-        return {
-          pubkey: account.pubkey,
-          id: account.decoded.proposalId,
-          title: account.decoded.title,
-          description: account.decoded.description,
-          authority: account.decoded.authority.toString(),
-          endTime: account.decoded.endTime.toNumber(),
-          yesVotes: account.decoded.yesVotes.toNumber() / LAMPORTS_PER_SOL,
-          noVotes: account.decoded.noVotes.toNumber() / LAMPORTS_PER_SOL,
-          isClosed: !account.decoded.isActive,
-        };
-      });
-      
-      console.log('Final mapped proposals:', mappedProposals);
-      setProposals(mappedProposals);
-      
-    } catch (error) {
-      console.error('Error fetching proposals:', error);
-      toast({
-        variant: "destructive",
-        title: "Failed to fetch proposals",
-        description: "There was an error fetching proposals. Please try again."
-      });
-    } finally {
-      stopLoading();
-    }
+      setProposals(formattedProposals);
+    });
   };
 
   const fetchStakeAccounts = async () => {
@@ -285,7 +193,7 @@ const VoteInterface: React.FC = () => {
   const selectAllStakeAccounts = (selectAll: boolean) => {
     const updatedAccounts = stakeAccounts.map((acc) => ({
       ...acc,
-      selected: selectAll && !acc.hasVoted, // Only select if not voted already
+      selected: selectAll && !acc.hasVoted && acc.isEligible, // Only select if eligible and not voted already
     }));
     
     setStakeAccounts(updatedAccounts);
@@ -339,6 +247,18 @@ const VoteInterface: React.FC = () => {
       
       // For now, just use the first selected stake account
       const stakeAccount = selectedStakeAccounts[0];
+      
+      // Check if the stake account is eligible (delegated to our validator)
+      if (!stakeAccount.isEligible) {
+        toast({
+          variant: "destructive",
+          title: "Ineligible Stake Account",
+          description: "This stake account is not delegated to the required validator (28rDkn...7Nps)."
+        });
+        stopLoading();
+        return;
+      }
+      
       const stakeAccountPubkey = new PublicKey(stakeAccount.pubkey);
       
       console.log("Using stake account pubkey:", stakeAccountPubkey.toString());
@@ -441,10 +361,18 @@ const VoteInterface: React.FC = () => {
           console.error("Transaction logs:", error.logs);
         }
         
+        // Check for specific error messages
+        let errorMessage = error.message || "Failed to submit vote transaction";
+        
+        // Check if the error is related to the validator delegation
+        if (error.logs && error.logs.some((log: string) => log.includes("NotDelegatedToValidator"))) {
+          errorMessage = "This stake account is not delegated to the required validator (28rDkn...7Nps).";
+        }
+        
         toast({
           variant: "destructive",
           title: "Vote Failed",
-          description: error.message || "Failed to submit vote transaction"
+          description: errorMessage
         });
       } finally {
         stopLoading();
@@ -499,11 +427,17 @@ const VoteInterface: React.FC = () => {
                   <div className="space-y-4">
                     <Skeleton className="h-8 w-full" />
                     <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
-              </div>
+                  </div>
                 ) : (
                   <>
-                    <StakeAccountList 
+                    <Alert className="mb-4">
+                      <AlertTitle>Validator Requirement</AlertTitle>
+                      <AlertDescription>
+                        Only stake accounts delegated to validator <span className="font-mono">28rDkn...7Nps</span> are eligible for voting.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <StakeAccountList
                       stakeAccounts={stakeAccounts}
                       selectedStakeAccounts={selectedStakeAccounts}
                       handleSelectStakeAccount={handleSelectStakeAccount}
@@ -512,7 +446,7 @@ const VoteInterface: React.FC = () => {
                     />
                     
                     {/* Proposals Section with Voting UI */}
-                  {proposals.length > 0 && (
+                    {proposals.length > 0 && (
                       <div className="mt-6">
                         <h3 className="text-lg font-semibold mb-4">Proposals</h3>
                         <div className="space-y-4">
@@ -527,8 +461,8 @@ const VoteInterface: React.FC = () => {
                             />
                           ))}
                         </div>
-                    </div>
-                  )}
+                      </div>
+                    )}
                   </>
                 )}
               </CardContent>

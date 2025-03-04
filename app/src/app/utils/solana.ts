@@ -1,6 +1,9 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL, StakeProgram } from '@solana/web3.js';
 import { StakeAccountInfo } from '../components/vote/types';
 
+// Our validator pubkey that stake accounts must be delegated to
+const VALIDATOR_VOTE_PUBKEY = new PublicKey('28rDknpdBPNu5RU9yxbVqqHwnbXB9qaCigw1M53g7Nps');
+
 /**
  * Gets stake accounts for a wallet
  * @param connection Solana connection
@@ -37,8 +40,8 @@ export const getStakeAccounts = async (
     }
     
     // Map accounts to our format
-    const mappedAccounts: StakeAccountInfo[] = accounts
-      .map((acc) => {
+    const mappedAccounts = accounts
+      .map((acc): StakeAccountInfo | null => {
         const parsedData = (acc.account.data as any).parsed.info;
         const stakeData = parsedData.stake;
         
@@ -62,11 +65,19 @@ export const getStakeAccounts = async (
           return null;
         }
         
+        // Get the validator vote pubkey this stake account is delegated to (if any)
+        const validatorVote = stakeData?.delegation?.voter || null;
+        
+        // Check if this stake account is delegated to our validator
+        const isEligible = validatorVote === VALIDATOR_VOTE_PUBKEY.toString();
+        
         return {
           pubkey: acc.pubkey.toString(),
           stake: stakeAmount,
           withdrawer: withdrawerAuthority,
           staker: parsedData.meta?.authorized?.staker || withdrawerAuthority,
+          validatorVote: validatorVote,
+          isEligible: isEligible,
           hasVoted: false, // This will be checked later
           selected: false,
         };

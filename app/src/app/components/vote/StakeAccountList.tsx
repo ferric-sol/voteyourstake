@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { StakeAccountInfo } from './types';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface StakeAccountListProps {
   stakeAccounts: StakeAccountInfo[];
@@ -20,6 +21,9 @@ const StakeAccountList: React.FC<StakeAccountListProps> = ({
   selectAllStakeAccounts,
   formatNumber
 }) => {
+  // Count eligible accounts (not voted and delegated to our validator)
+  const eligibleAccounts = stakeAccounts.filter(acc => !acc.hasVoted && acc.isEligible);
+  
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-4">
@@ -28,7 +32,7 @@ const StakeAccountList: React.FC<StakeAccountListProps> = ({
           <div className="flex items-center space-x-2">
             <Checkbox 
               id="select-all"
-              checked={stakeAccounts.length > 0 && selectedStakeAccounts.length === stakeAccounts.filter(acc => !acc.hasVoted).length}
+              checked={eligibleAccounts.length > 0 && selectedStakeAccounts.length === eligibleAccounts.length}
               onCheckedChange={(checked) => selectAllStakeAccounts(checked === true)}
             />
             <Label htmlFor="select-all">Select All Eligible</Label>
@@ -46,16 +50,36 @@ const StakeAccountList: React.FC<StakeAccountListProps> = ({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {stakeAccounts.map((account) => (
-            <div key={account.pubkey} className="border rounded-lg p-4 hover:bg-accent transition-colors">
+            <div 
+              key={account.pubkey} 
+              className={`border rounded-lg p-4 transition-colors ${
+                account.isEligible ? 'hover:bg-accent' : 'opacity-70'
+              }`}
+            >
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={`stake-${account.pubkey}`}
-                    checked={account.selected}
-                    disabled={account.hasVoted}
-                    onCheckedChange={() => handleSelectStakeAccount(account)}
-                    className="mr-2"
-                  />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Checkbox 
+                            id={`stake-${account.pubkey}`}
+                            checked={account.selected}
+                            disabled={account.hasVoted || !account.isEligible}
+                            onCheckedChange={() => handleSelectStakeAccount(account)}
+                            className="mr-2"
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {account.hasVoted 
+                          ? "This account has already voted" 
+                          : !account.isEligible 
+                            ? "This account is not delegated to the required validator" 
+                            : "Select this account for voting"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <Label 
                     htmlFor={`stake-${account.pubkey}`}
                     className="font-mono text-xs truncate"
@@ -67,9 +91,17 @@ const StakeAccountList: React.FC<StakeAccountListProps> = ({
                   {formatNumber(account.stake)} SOL
                 </span>
               </div>
-              {account.hasVoted && (
-                <Badge variant="secondary" className="mt-2">Already Voted</Badge>
-              )}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {account.hasVoted && (
+                  <Badge variant="secondary">Already Voted</Badge>
+                )}
+                {!account.isEligible && (
+                  <Badge variant="destructive">Not Eligible</Badge>
+                )}
+                {account.isEligible && !account.hasVoted && (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Eligible</Badge>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -79,6 +111,9 @@ const StakeAccountList: React.FC<StakeAccountListProps> = ({
         <p>Selected: {selectedStakeAccounts.length} account(s) with {formatNumber(
           selectedStakeAccounts.reduce((sum, acc) => sum + Number(acc.stake), 0)
         )} SOL</p>
+        <p className="mt-1 text-xs">
+          Note: Only stake accounts delegated to validator 28rDkn...7Nps are eligible for voting.
+        </p>
       </div>
     </div>
   );

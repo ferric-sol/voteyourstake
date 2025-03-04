@@ -26,6 +26,8 @@ export type StakeAccountInfo = {
   stake: number | string;
   withdrawer: string;
   staker: string;
+  validatorVote: string | null;
+  isEligible: boolean;
   hasVoted: boolean;
   selected: boolean;
 };
@@ -72,12 +74,13 @@ export interface ProposalData {
   proposalId: string;
   title: string;
   description: string;
-  yesVotes: string;
-  noVotes: string;
-  endTime: Date;
+  yesVotes: string | number;
+  noVotes: string | number;
+  endTime: Date | number;
   isActive: boolean;
-  voteCount: string;
+  voteCount: string | number;
   pubkey: any; // PublicKey
+  id?: string; // For backward compatibility
 }
 
 export interface SIMDProposal {
@@ -92,13 +95,13 @@ export const SIMD_PROPOSALS_LIST: SIMDProposal[] = [
   {
     id: "SIMD-228",
     title: "Market-based emissions mechanism",
-    description: "Proposal to implement a market-based emissions mechanism for the Solana network to incentivize sustainable validator operations.",
-    link: "https://forum.solana.com/t/simd-228-market-based-emissions"
+    description: "Proposal for introducing a programmatic market-based emission mechanism based on staking participation rate",
+    link: "https://forum.solana.com/t/proposal-for-introducing-a-programmatic-market-based-emission-mechanism-based-on-staking-participation-rate/3294"
   },
   {
     id: "SIMD-123",
     title: "Block rewards distribution",
-    description: "Proposal to modify the block rewards distribution algorithm to better align validator incentives with network health.",
-    link: "https://forum.solana.com/t/simd-123-block-rewards"
+    description: "Proposal for an in-protocol distribution of block rewards to stakers",
+    link: "https://forum.solana.com/t/proposal-for-an-in-protocol-distribution-of-block-rewards-to-stakers/3295"
   }
 ]; 

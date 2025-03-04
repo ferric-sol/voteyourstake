@@ -4,6 +4,7 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter, SolflareWalletAdapter, TorusWalletAdapter, CoinbaseWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { useMemo, useEffect, useState } from 'react';
+import { Toaster } from '@/components/ui/toaster';
 
 // Import our custom wallet adapter styles
 import './wallet-adapter.css';
@@ -31,6 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
           {mounted && children}
+          <Toaster />
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
