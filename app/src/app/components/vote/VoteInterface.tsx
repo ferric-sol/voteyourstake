@@ -47,64 +47,185 @@ const VoteInterface: React.FC = () => {
   const startLoading = () => setLoadingCounter(prev => prev + 1);
   const stopLoading = () => setLoadingCounter(prev => Math.max(0, prev - 1));
   
-  // Load SIMD proposals
+  // Load SIMD proposals and fetch on-chain data
   useEffect(() => {
+    if (!anchorProgram || !connection) return;
+    
     // Import the SIMD_PROPOSALS_LIST from types.ts
-    import('./types').then(({ SIMD_PROPOSALS_LIST }) => {
+    import('./types').then(async ({ SIMD_PROPOSALS_LIST }) => {
       setSimdProposals(SIMD_PROPOSALS_LIST);
       
-      // Convert SIMD_PROPOSALS_LIST to ProposalData format
-      const formattedProposals: ProposalData[] = SIMD_PROPOSALS_LIST.map(simdProposal => ({
-        authority: new PublicKey('7NHwDTAu3XBPrMTFoEasfSNPhnP6uqLGAk6G8MiqDJU9'), // Use your wallet address
-        proposalId: simdProposal.id,
-        title: simdProposal.title,
-        description: simdProposal.description,
-        yesVotes: 0,
-        noVotes: 0,
-        endTime: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
-        isActive: true,
-        voteCount: 0,
-        pubkey: new PublicKey(PublicKey.findProgramAddressSync(
-          [Buffer.from('proposal'), Buffer.from(simdProposal.id)],
-          new PublicKey(anchorProgram?.programId || '11111111111111111111111111111111')
-        )[0]),
-        id: simdProposal.id
-      }));
-      
-      setProposals(formattedProposals);
+      try {
+        startLoading();
+        
+        // For each proposal in SIMD_PROPOSALS_LIST, try to fetch the on-chain data
+        const proposalsWithOnChainData = await Promise.all(
+          SIMD_PROPOSALS_LIST.map(async (simdProposal) => {
+            // Derive the proposal PDA
+            const [proposalPDA] = PublicKey.findProgramAddressSync(
+              [Buffer.from('proposal'), Buffer.from(simdProposal.id)],
+              anchorProgram.programId
+            );
+            
+            try {
+              // Try to fetch the on-chain proposal data
+              const onChainProposal = await connection.getAccountInfo(proposalPDA);
+              
+              if (!onChainProposal) {
+                throw new Error(`Proposal account not found for ${simdProposal.id}`);
+              }
+              
+              // Decode the account data using Anchor's coder
+              const decodedProposal = anchorProgram.coder.accounts.decode('Proposal', onChainProposal.data);
+              console.log(`Fetched on-chain data for proposal ${simdProposal.id}:`, decodedProposal);
+              
+              // Combine the on-chain data with our updated title and description
+              return {
+                authority: decodedProposal.authority,
+                proposalId: simdProposal.id,
+                title: simdProposal.title, // Use our updated title
+                description: simdProposal.description, // Use our updated description
+                yesVotes: decodedProposal.yesVotes.toNumber() / LAMPORTS_PER_SOL,
+                noVotes: decodedProposal.noVotes.toNumber() / LAMPORTS_PER_SOL,
+                endTime: decodedProposal.endTime.toNumber() * 1000, // Convert to milliseconds
+                isActive: decodedProposal.isActive,
+                voteCount: decodedProposal.voteCount.toNumber(),
+                pubkey: proposalPDA,
+                id: simdProposal.id
+              };
+            } catch (error) {
+              console.error(`Error fetching on-chain data for proposal ${simdProposal.id}:`, error);
+              
+              // If we can't fetch the on-chain data, use default values
+              return {
+                authority: new PublicKey('7NHwDTAu3XBPrMTFoEasfSNPhnP6uqLGAk6G8MiqDJU9'),
+                proposalId: simdProposal.id,
+                title: simdProposal.title,
+                description: simdProposal.description,
+                yesVotes: 0,
+                noVotes: 0,
+                endTime: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
+                isActive: true,
+                voteCount: 0,
+                pubkey: proposalPDA,
+                id: simdProposal.id
+              };
+            }
+          })
+        );
+        
+        console.log('Proposals with on-chain data:', proposalsWithOnChainData);
+        setProposals(proposalsWithOnChainData);
+      } catch (error) {
+        console.error('Error fetching on-chain proposal data:', error);
+        
+        // If there's an error, fall back to using the local data
+        const formattedProposals: ProposalData[] = SIMD_PROPOSALS_LIST.map(simdProposal => {
+          const [proposalPDA] = PublicKey.findProgramAddressSync(
+            [Buffer.from('proposal'), Buffer.from(simdProposal.id)],
+            anchorProgram.programId
+          );
+          
+          return {
+            authority: new PublicKey('7NHwDTAu3XBPrMTFoEasfSNPhnP6uqLGAk6G8MiqDJU9'),
+            proposalId: simdProposal.id,
+            title: simdProposal.title,
+            description: simdProposal.description,
+            yesVotes: 0,
+            noVotes: 0,
+            endTime: Date.now() + 30 * 24 * 60 * 60 * 1000,
+            isActive: true,
+            voteCount: 0,
+            pubkey: proposalPDA,
+            id: simdProposal.id
+          };
+        });
+        
+        setProposals(formattedProposals);
+      } finally {
+        stopLoading();
+      }
     });
-  }, [anchorProgram?.programId]);
+  }, [anchorProgram, connection]);
   
   // Data fetching functions
   const refreshProposals = async () => {
-    // We're now using the SIMD_PROPOSALS_LIST directly, so this function
-    // doesn't need to fetch from the blockchain anymore
-    console.log('Refreshing proposals from local data...');
+    if (!anchorProgram || !connection) return;
     
-    // Re-trigger the useEffect that loads the SIMD_PROPOSALS_LIST
-    import('./types').then(({ SIMD_PROPOSALS_LIST }) => {
-      setSimdProposals(SIMD_PROPOSALS_LIST);
+    try {
+      startLoading();
       
-      // Convert SIMD_PROPOSALS_LIST to ProposalData format
-      const formattedProposals: ProposalData[] = SIMD_PROPOSALS_LIST.map(simdProposal => ({
-        authority: new PublicKey('7NHwDTAu3XBPrMTFoEasfSNPhnP6uqLGAk6G8MiqDJU9'), // Use your wallet address
-        proposalId: simdProposal.id,
-        title: simdProposal.title,
-        description: simdProposal.description,
-        yesVotes: 0,
-        noVotes: 0,
-        endTime: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
-        isActive: true,
-        voteCount: 0,
-        pubkey: new PublicKey(PublicKey.findProgramAddressSync(
-          [Buffer.from('proposal'), Buffer.from(simdProposal.id)],
-          new PublicKey(anchorProgram?.programId || '11111111111111111111111111111111')
-        )[0]),
-        id: simdProposal.id
-      }));
-      
-      setProposals(formattedProposals);
-    });
+      // Re-trigger the useEffect that loads the SIMD_PROPOSALS_LIST and fetches on-chain data
+      import('./types').then(async ({ SIMD_PROPOSALS_LIST }) => {
+        setSimdProposals(SIMD_PROPOSALS_LIST);
+        
+        // For each proposal in SIMD_PROPOSALS_LIST, try to fetch the on-chain data
+        const proposalsWithOnChainData = await Promise.all(
+          SIMD_PROPOSALS_LIST.map(async (simdProposal) => {
+            // Derive the proposal PDA
+            const [proposalPDA] = PublicKey.findProgramAddressSync(
+              [Buffer.from('proposal'), Buffer.from(simdProposal.id)],
+              anchorProgram.programId
+            );
+            
+            try {
+              // Try to fetch the on-chain proposal data
+              const onChainProposal = await connection.getAccountInfo(proposalPDA);
+              
+              if (!onChainProposal) {
+                throw new Error(`Proposal account not found for ${simdProposal.id}`);
+              }
+              
+              // Decode the account data using Anchor's coder
+              const decodedProposal = anchorProgram.coder.accounts.decode('Proposal', onChainProposal.data);
+              
+              // Combine the on-chain data with our updated title and description
+              return {
+                authority: decodedProposal.authority,
+                proposalId: simdProposal.id,
+                title: simdProposal.title, // Use our updated title
+                description: simdProposal.description, // Use our updated description
+                yesVotes: decodedProposal.yesVotes.toNumber() / LAMPORTS_PER_SOL,
+                noVotes: decodedProposal.noVotes.toNumber() / LAMPORTS_PER_SOL,
+                endTime: decodedProposal.endTime.toNumber() * 1000, // Convert to milliseconds
+                isActive: decodedProposal.isActive,
+                voteCount: decodedProposal.voteCount.toNumber(),
+                pubkey: proposalPDA,
+                id: simdProposal.id
+              };
+            } catch (error) {
+              console.error(`Error fetching on-chain data for proposal ${simdProposal.id}:`, error);
+              
+              // If we can't fetch the on-chain data, use default values
+              return {
+                authority: new PublicKey('7NHwDTAu3XBPrMTFoEasfSNPhnP6uqLGAk6G8MiqDJU9'),
+                proposalId: simdProposal.id,
+                title: simdProposal.title,
+                description: simdProposal.description,
+                yesVotes: 0,
+                noVotes: 0,
+                endTime: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
+                isActive: true,
+                voteCount: 0,
+                pubkey: proposalPDA,
+                id: simdProposal.id
+              };
+            }
+          })
+        );
+        
+        setProposals(proposalsWithOnChainData);
+      });
+    } catch (error) {
+      console.error('Error refreshing proposals:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to refresh proposals",
+        description: "There was an error refreshing the proposals. Please try again."
+      });
+    } finally {
+      stopLoading();
+    }
   };
 
   const fetchStakeAccounts = async () => {
